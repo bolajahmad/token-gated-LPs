@@ -10,7 +10,7 @@ contract TokenLiquidity1 is ERC20 {
     }
 }
 
-contract DeployTokenScript is Script {
+contract tokenLiqiodityDeploy is Script {
     function run() external {
         // priv key deployer z env (np. PRIVATE_KEY)
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
