@@ -9,3 +9,8 @@ ffi = true
 
 dotenv = ".env"
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+remappings = ['@openzeppelin/contracts=lib/openzeppelin-contracts/contracts',  
+  'forge-std=lib/forge-std/src',         # jeśli korzystasz z forge-std
+    'ds-test=lib/ds-test/src',              # jeśli używasz ds-test do testów
+'lib/forge-std/Script.sol=lib/forge-std/src/Script.sol'
+]
