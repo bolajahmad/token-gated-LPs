@@ -2,9 +2,9 @@
     "name": "GaTe tokens",
     "image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
     // FIXME: Uncomment feature if foundry adds this https://github.com/foundry-rs/foundry/issues/7290
-    // "features": {
-    //   "ghcr.io/foundry-rs/foundry": {}
-    // }
+     "features": {
+       "ghcr.io/foundry-rs/foundry": {}
+     }
     // "postCreateCommand": "forge test --gas-report",
   
     // TODO: Remove commands if this feature is added https://github.com/foundry-rs/foundry/issues/7290
