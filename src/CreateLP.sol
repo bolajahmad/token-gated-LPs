@@ -4,11 +4,11 @@ pragma solidity ^0.8.13;
 import { PoolKey } from "v4-core/src/types/PoolKey.sol";
 import { Currency, CurrencyLibrary } from "v4-core/src/types/Currency.sol";
 import { IHooks } from "v4-core/src/interfaces/IHooks.sol";
-import { IPOolManager } from "v4-core/src/interfaces/IPoolManager.sol";
+import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
 
 contract CreatePool {
     Currency immutable token;
-    IHooks private hook;
+    IHooks private hookContract;
 
     // Pool Manager information: https://docs.uniswap.org/contracts/v4/deployments#sepolia-11155111 
     // Sepolia information
@@ -17,8 +17,11 @@ contract CreatePool {
     uint24 private constant LP_FEE = 5000;      // 0.5%
     int24 private constant TICK_SPACING = 100;
 
-    constructor(address _token, hook) {
+    uint160 startingPrice = 56022770974786139918731938227; // floor(sqrt(0.5) * 2^96)
+
+    constructor(address _token, address _hook) {
         token = Currency.wrap(address(_token));
+        hookContract = IHooks(address(_hook));
     }
 
     function run() external {
@@ -28,20 +31,10 @@ contract CreatePool {
             currency1: token,
             fee: LP_FEE,
             tickSpacing: TICK_SPACING,
-            hook
+            hooks: hookContract
         });
 
         // Call initialize function, with a starting price
-        IPoolManager(POOL_MANAGER).initialize(pool, getStartingPrice());
-    }
-
-    /* The startingPrice is expressed as sqrtPriceX96 */
-    function getStartingPrice() internal returns (uint256) {
-        // Get the price of the token
-        uint256 tokenAmount = 5e17;
-        uint256 ethAmount = 1e18;
-        // Return the price of the token
-        uint256 startPrice = floor(sqrt(ethAmount / tokenAmount) * 2**96);
-        return startPrice;
+        IPoolManager(POOL_MANAGER).initialize(pool, startingPrice);
     }
 }
