@@ -64,3 +64,6 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+### dEPLOY ERC20 remember to do in cmd line if not in toml:
+### source .env        (here should be address and priv key )
+### forge script scripts/tokenLiqiodityDeploy.s.sol:tokenLiqiodityDeploy --rpc-url $SEPOLIA_RPC_URL --fork-url $SEPOLIA_RPC_URL --chain 6398 --broadcast --verify
