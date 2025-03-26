@@ -12,7 +12,7 @@ contract TGNftScript is Script {
     function run() public {
         vm.startBroadcast();
 
-        nft = new TokenGatingNFT();
+        nft = new TokenGatingNFT("Name", "Symb", 100, 200, address(0x01), address(0x02));
 
         vm.stopBroadcast();
     }
