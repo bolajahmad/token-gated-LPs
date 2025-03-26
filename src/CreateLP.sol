@@ -6,6 +6,7 @@ import { Currency, CurrencyLibrary } from "v4-core/src/types/Currency.sol";
 import { IHooks } from "v4-core/src/interfaces/IHooks.sol";
 import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { PoolId } from "@uniswap/v4-core/src/types/PoolId.sol";
 
 import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
@@ -43,7 +44,7 @@ contract CreatePool is Ownable2Step {
     constructor(address _token, address _hook, address _admin) 
         Ownable(_admin)
     {
-        require(_token != address(0) && _hook !== address(0), InvalidParameter());
+        require(_token != address(0) && _hook != address(0), InvalidParameter());
         token = Currency.wrap(address(_token));
         hookContract = GatedLPHook(address(_hook));
     }
@@ -51,7 +52,7 @@ contract CreatePool is Ownable2Step {
     // This creates a new LP
     // Only the contract owner can call this function
     // Updates the hook contract with the created PoolKey
-    function createPool() external onlyOwner returns (PoolKey memory pool) {
+    function createPool() external onlyOwner returns (PoolKey memory) {
         require(!poolCreated, PoolAlreadyCreated());
 
         // Setup poolKey configuration
@@ -64,20 +65,21 @@ contract CreatePool is Ownable2Step {
         });
 
         // Save PoolKey to hooks contract
-        hookContract.updatePoolKey(pool.toId());
+        hookContract.updatePoolKey(pool);
 
         // Call initialize function, with a starting price
         try IPoolManager(POOL_MANAGER).initialize(pool, startingPrice) {
             poolCreated = true;
             emit PoolCreated(pool.toId(), startingPrice);
+            return pool;
         } catch {
-            revert(PoolCreationFailed());
-        };
+            revert("Pool Creation Failed");
+        }
     }
 
     /**
-    * @param _lpFee
-    * @param _startingPrice
+    * @param _lpFee the fee to be paid by LPs
+    * @param _startingPrice the starting price of the pool
     * tickSpacing = (_lpFee * 100) / 5000
      */
      function updatePoolParameters(uint24 _lpFee, uint160 _startingPrice) external onlyOwner {
@@ -85,7 +87,7 @@ contract CreatePool is Ownable2Step {
         require(_lpFee > 0 && _lpFee <= 10000, InvalidParameter());
 
         lpFee = _lpFee;
-        tickSpacing = (_lpFee * 100) / 5000;
+        tickSpacing = int24((_lpFee * 100) / 5000);
         startingPrice = _startingPrice;
 
         emit PoolParameterUpdated(lpFee, tickSpacing, startingPrice);
@@ -93,7 +95,7 @@ contract CreatePool is Ownable2Step {
 
     /**
     * Updates the hookContract address before creating Pool 
-    * @param _newHook
+    * @param _newHook address of the the new hook contract
     */
     function updateHookContract(address _newHook) external onlyOwner {
         require(_newHook != address(0), InvalidParameter());
