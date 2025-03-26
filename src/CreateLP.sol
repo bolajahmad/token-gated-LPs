@@ -52,12 +52,12 @@ contract CreatePool is Ownable2Step {
     // This creates a new LP
     // Only the contract owner can call this function
     // Updates the hook contract with the created PoolKey
-    function createPool() external onlyOwner returns (PoolKey memory) {
+    function createPool() external onlyOwner returns (PoolKey memory pool) {
         require(!poolCreated, PoolAlreadyCreated());
 
         // Setup poolKey configuration
-        poolKey = PoolKey({
-            currency0: CurrencyLibrary.currency0, // Use native currency (ETH) as currency0
+        pool = PoolKey({
+            currency0: CurrencyLibrary.ADDRESS_ZERO,
             currency1: token,
             fee: lpFee,
             tickSpacing: tickSpacing,
