@@ -68,7 +68,7 @@ contract GatedLPHook is BaseHook, Ownable2Step {
         bytes calldata /* hookData */
     ) internal override returns (bytes4) {
         // Check if this is our gated pool
-        if (gatedPoolId != bytes32(0) && key.toId() != gatedPoolId) {
+        if (PoolId.unwrap(gatedPoolId) != bytes32(0) && PoolId.unwrap(key.toId()) != PoolId.unwrap(gatedPoolId)) {
             // Not our pool, let it pass
             return BaseHook.beforeAddLiquidity.selector;
         }
@@ -93,7 +93,7 @@ contract GatedLPHook is BaseHook, Ownable2Step {
         // But we track it for analytics
         
         // Check if this is our gated pool
-        if (gatedPoolId != bytes32(0) && key.toId() != gatedPoolId) {
+        if (PoolId.unwrap(gatedPoolId) != bytes32(0) && PoolId.unwrap(key.toId()) != PoolId.unwrap(gatedPoolId)) {
             // Not our pool, let it pass
             return BaseHook.beforeRemoveLiquidity.selector;
         }
