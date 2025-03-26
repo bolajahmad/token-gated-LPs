@@ -65,7 +65,7 @@ contract CreatePool is Ownable2Step {
         });
 
         // Save PoolKey to hooks contract
-        hookContract.updatePoolKey(pool);
+        hookContract.setGatedPoolId(pool.toId());
 
         // Call initialize function, with a starting price
         try IPoolManager(POOL_MANAGER).initialize(pool, startingPrice) {
