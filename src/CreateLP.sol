@@ -6,137 +6,100 @@ import { Currency, CurrencyLibrary } from "v4-core/src/types/Currency.sol";
 import { IHooks } from "v4-core/src/interfaces/IHooks.sol";
 import { IPoolManager } from "v4-core/src/interfaces/IPoolManager.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { PoolId } from "@uniswap/v4-core/src/types/PoolId.sol";
 
-/**
- * @title CreatePool
- * @dev Contract to create and initialize a Uniswap V4 liquidity pool with token gating
- */
-contract CreatePool is Ownable {
-    // Token to be paired with ETH in the pool
-    Currency public immutable token;
-    
-    // Hook contract that implements token gating
-    IHooks public hookContract;
-    
-    // Pool Manager address (can be updated for different networks)
-    IPoolManager public poolManager;
-    
-    // LP fee (in hundredths of a bip, so 5000 = 0.5%)
-    uint24 public lpFee;
-    
-    // Tick spacing for the pool
-    int24 public tickSpacing;
-    
-    // Starting price for the pool (sqrt price * 2^96)
-    uint160 public startingPrice;
-    
-    // Status of the pool creation
+import { Ownable2Step, Ownable } from "@openzeppelin/contracts/access/Ownable2Step.sol";
+
+import { GatedLPHook } from "./GatedLPHook.sol";
+
+contract CreatePool is Ownable2Step {
+    Currency immutable token;
+    GatedLPHook private hookContract;
+
+    // Pool Manager information: https://docs.uniswap.org/contracts/v4/deployments#sepolia-11155111 
+    // Sepolia information
+    IPoolManager private constant POOL_MANAGER = IPoolManager(
+        address(0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408)
+    );
+
+    uint24 private lpFee = 5000;      // 0.5%
+    int24 private tickSpacing = 100;
+
     bool public poolCreated;
-    
-    // Pool key for the created pool
-    PoolKey public poolKey;
-    
-    // Events
-    event PoolParametersUpdated(uint24 lpFee, int24 tickSpacing, uint160 startingPrice);
+
+    // ETH:CR20 => 1:2
+    uint160 private startingPrice = 56022770974786139918731938227; // floor(sqrt(0.5) * 2^96)
+
+    // Events emittable
+    event PoolParameterUpdated(uint24 lpFee, int24 tickSpacing, uint160 startingPrice);
+    event PoolCreated(PoolId poolId, uint160 startingPrice);
     event HookContractUpdated(address newHook);
-    event PoolManagerUpdated(address newPoolManager);
-    event PoolCreated(PoolKey poolKey, uint160 startingPrice);
-    
+
     // Custom errors
     error PoolAlreadyCreated();
     error PoolCreationFailed();
     error InvalidParameter();
     error InsufficientPermissions();
 
-    constructor(
-        address _token, 
-        address _hook, 
-        address _poolManager,
-        address _initialOwner
-    ) Ownable(_initialOwner) {
-        if (_token == address(0)) revert InvalidParameter();
-        if (_hook == address(0)) revert InvalidParameter();
-        if (_poolManager == address(0)) revert InvalidParameter();
-        
-        token = Currency.wrap(_token);
-        hookContract = IHooks(_hook);
-        poolManager = IPoolManager(_poolManager);
-        
-        // Default values (can be updated before pool creation)
-        lpFee = 5000;      // 0.5%
-        tickSpacing = 100;
-        startingPrice = 56022770974786139918731938227; // floor(sqrt(0.5) * 2^96)
+    constructor(address _token, address _hook, address _admin) 
+        Ownable(_admin)
+    {
+        require(_token != address(0) && _hook != address(0), InvalidParameter());
+        token = Currency.wrap(address(_token));
+        hookContract = GatedLPHook(address(_hook));
     }
 
-    /**
-     * @dev Create and initialize the liquidity pool
-     * @return The created pool key
-     */
-    function createPool() external onlyOwner returns (PoolKey memory) {
-        if (poolCreated) revert PoolAlreadyCreated();
-        
+    // This creates a new LP
+    // Only the contract owner can call this function
+    // Updates the hook contract with the created PoolKey
+    function createPool() external onlyOwner returns (PoolKey memory pool) {
+        require(!poolCreated, PoolAlreadyCreated());
+
         // Setup poolKey configuration
-        poolKey = PoolKey({
-            currency0: CurrencyLibrary.ADDRESS_ZERO, // Use native currency (ETH) as currency0
+        pool = PoolKey({
+            currency0: CurrencyLibrary.ADDRESS_ZERO,
             currency1: token,
             fee: lpFee,
             tickSpacing: tickSpacing,
             hooks: hookContract
         });
 
-        try IPoolManager(poolManager).initialize(poolKey, startingPrice) {
+        // Save PoolKey to hooks contract
+        hookContract.setGatedPoolId(pool.toId());
+
+        // Call initialize function, with a starting price
+        try IPoolManager(POOL_MANAGER).initialize(pool, startingPrice) {
             poolCreated = true;
-            emit PoolCreated(poolKey, startingPrice);
-            return poolKey;
+            emit PoolCreated(pool.toId(), startingPrice);
+            return pool;
         } catch {
-            revert PoolCreationFailed();
+            revert("Pool Creation Failed");
         }
     }
-    
+
     /**
-     * @dev Update pool parameters before pool creation
-     * @param _lpFee New LP fee
-     * @param _tickSpacing New tick spacing
-     * @param _startingPrice New starting price
+    * @param _lpFee the fee to be paid by LPs
+    * @param _startingPrice the starting price of the pool
+    * tickSpacing = (_lpFee * 100) / 5000
      */
-    function updatePoolParameters(
-        uint24 _lpFee,
-        int24 _tickSpacing,
-        uint160 _startingPrice
-    ) external onlyOwner {
-        if (poolCreated) revert PoolAlreadyCreated();
-        if (_startingPrice == 0) revert InvalidParameter();
-        
+     function updatePoolParameters(uint24 _lpFee, uint160 _startingPrice) external onlyOwner {
+        require(!poolCreated, PoolAlreadyCreated());
+        require(_lpFee > 0 && _lpFee <= 10000, InvalidParameter());
+
         lpFee = _lpFee;
-        tickSpacing = _tickSpacing;
+        tickSpacing = int24((_lpFee * 100) / 5000);
         startingPrice = _startingPrice;
-        
-        emit PoolParametersUpdated(_lpFee, _tickSpacing, _startingPrice);
+
+        emit PoolParameterUpdated(lpFee, tickSpacing, startingPrice);
     }
-    
+
     /**
-     * @dev Update the hook contract before pool creation
-     * @param _newHook New hook contract address
-     */
+    * Updates the hookContract address before creating Pool 
+    * @param _newHook address of the the new hook contract
+    */
     function updateHookContract(address _newHook) external onlyOwner {
-        if (poolCreated) revert PoolAlreadyCreated();
-        if (_newHook == address(0)) revert InvalidParameter();
-        
-        hookContract = IHooks(_newHook);
-        
+        require(_newHook != address(0), InvalidParameter());
+        hookContract = GatedLPHook(address(_newHook));
         emit HookContractUpdated(_newHook);
-    }
-    
-    /**
-     * @dev Update the pool manager contract before pool creation
-     * @param _newPoolManager New pool manager contract address
-     */
-    function updatePoolManager(address _newPoolManager) external onlyOwner {
-        if (poolCreated) revert PoolAlreadyCreated();
-        if (_newPoolManager == address(0)) revert InvalidParameter();
-        
-        poolManager = IPoolManager(_newPoolManager);
-        
-        emit PoolManagerUpdated(_newPoolManager);
     }
 }

@@ -74,7 +74,6 @@ contract Deploy is Script {
         poolCreator = new CreatePool(
             address(token),
             address(hook),
-            POOL_MANAGER_ADDRESS,
             deployer
         );
         console2.log("Pool Creator deployed at:", address(poolCreator));

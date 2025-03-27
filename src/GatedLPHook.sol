@@ -129,6 +129,6 @@ contract GatedLPHook is BaseHook, Ownable2Step {
      * @return removeCount Number of liquidity removals
      */
     function getAnalytics() external view returns (uint256 addCount, uint256 removeCount) {
-       return (beforeAddLiquidityCount, beforeRemoveLiquidityCount);
+        return (beforeAddLiquidityCount, beforeRemoveLiquidityCount);
     }
 }
