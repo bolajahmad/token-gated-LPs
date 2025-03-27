@@ -64,7 +64,7 @@ contract GatedLPHook is BaseHook, Ownable2Step {
     function _beforeAddLiquidity(
         address sender,
         PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
+        IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata /* hookData */
     ) internal override returns (bytes4) {
         // Check if this is our gated pool
@@ -86,7 +86,7 @@ contract GatedLPHook is BaseHook, Ownable2Step {
     function _beforeRemoveLiquidity(
         address sender,
         PoolKey calldata key,
-        IPoolManager.ModifyLiquidityParams calldata params,
+        IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata /* hookData */
     ) internal override returns (bytes4) {
         // For liquidity removal, we don't need to check for membership

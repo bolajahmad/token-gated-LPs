@@ -138,18 +138,18 @@ contract TokenGatingNFT is ERC721, Ownable {
     /**
      * @dev Prevent transfers - NFTs are non-transferable
      */
-    function transfer(address from, address to, uint256 tokenId) internal {
+    function transfer(address, address, uint256) internal pure {
         revert("NFT is non-transferable");
     }
     
     /**
      * @dev Override approval functions to make tokens non-transferable
      */
-    function approve(address to, uint256 tokenId) public override {
+    function approve(address, uint256) public pure override {
         revert("NFT is non-transferable");
     }
     
-    function setApprovalForAll(address operator, bool approved) public override {
+    function setApprovalForAll(address, bool) public pure override {
         revert("NFT is non-transferable");
     }
 }
