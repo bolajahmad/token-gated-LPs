@@ -56,7 +56,7 @@ contract CreatePool is Ownable2Step {
         require(!poolCreated, PoolAlreadyCreated());
 
         // Setup poolKey configuration
-        poolKey = PoolKey({
+        pool = PoolKey({
             currency0: CurrencyLibrary.ADDRESS_ZERO, // Use native currency (ETH) as currency0
             currency1: token,
             fee: lpFee,
@@ -65,7 +65,7 @@ contract CreatePool is Ownable2Step {
         });
 
         // Save PoolKey to hooks contract
-        hookContract.updatePoolKey(pool);
+        hookContract.setGatedPoolId(pool.toId());
 
         // Call initialize function, with a starting price
         try IPoolManager(POOL_MANAGER).initialize(pool, startingPrice) {
