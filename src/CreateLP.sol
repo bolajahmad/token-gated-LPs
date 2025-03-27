@@ -77,7 +77,7 @@ contract CreatePool is Ownable {
         
         // Setup poolKey configuration
         poolKey = PoolKey({
-            currency0: CurrencyLibrary.currency0, // Use native currency (ETH) as currency0
+            currency0: CurrencyLibrary.ADDRESS_ZERO, // Use native currency (ETH) as currency0
             currency1: token,
             fee: lpFee,
             tickSpacing: tickSpacing,
