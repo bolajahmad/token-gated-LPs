@@ -103,3 +103,61 @@ forge test
 ## License
 
 This project is licensed under the UNLICENSED license.
+
+# Token-Gated Liquidity Pool Deployment
+
+This project creates a token-gated Uniswap V4 liquidity pool, where only members who own a specific NFT can add liquidity.
+
+## Deployment Instructions
+
+### Prerequisites
+
+1. Install Foundry: https://book.getfoundry.sh/getting-started/installation
+2. Clone this repository
+3. Run `forge install` to install dependencies
+
+### Required Environment Variables
+
+Create a `.env` file with the following variables:
+
+```
+PRIVATE_KEY=your_private_key
+TOKEN_ADDRESS=address_of_your_token
+MEMBERSHIP_NFT_ADDRESS=address_of_your_membership_nft
+ADMIN_ADDRESS=address_of_admin_account
+```
+
+### Deployment Steps
+
+1. Load environment variables:
+   ```bash
+   source .env
+   ```
+
+2. Deploy contracts to Sepolia testnet:
+   ```bash
+   forge script script/DeployCreatLP.s.sol:DeployCreatLPScript --rpc-url https://sepolia.infura.io/v3/YOUR_INFURA_KEY --broadcast --verify
+   ```
+
+3. After deployment, you'll get the addresses for `GatedLPHook` and `CreatePool` contracts.
+
+4. To create the pool, call the `createPool()` function on the deployed `CreatePool` contract:
+   ```bash
+   cast send ADDRESS_OF_CREATE_POOL "createPool()" --private-key $PRIVATE_KEY --rpc-url https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+   ```
+
+### Pool Parameters
+
+The default pool parameters are:
+- LP Fee: 0.5% (5000)
+- Starting Price: 0.5 ETH/TOKEN
+
+You can update these parameters before pool creation by calling:
+```bash
+cast send ADDRESS_OF_CREATE_POOL "updatePoolParameters(uint24,uint160)" NEW_FEE NEW_STARTING_PRICE --private-key $PRIVATE_KEY --rpc-url https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+```
+
+## Contract Overview
+
+- `CreatePool.sol`: Main contract that creates the Uniswap V4 pool
+- `GatedLPHook.sol`: Hook contract that enforces the NFT ownership requirement for LP providers
